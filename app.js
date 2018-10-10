@@ -1,35 +1,24 @@
 import express from 'express';
-import http from 'http';
 import hbs from 'express-handlebars';
+import giphy from 'giphy-api';
 
+const giphyApi = giphy();
 const app = express();
+
+app.use(express.static('public'));
 
 app.engine('handlebars', hbs({defaultLayout: 'main'}));
 app.set('view engine', 'handlebars');
 
 app.get('/', function (req, res) {
-    const {query} = req;
-    const term = encodeURIComponent(query.term);
-    const url = `http://api.giphy.com/v1/gifs/search?q=${term}&api_key=dc6zaTOxFJmzC`;
-
-    http.get(url, response => {
-        let body = '';
-
-        response.on('data', data => {
-            console.log('on data', data);
-            body += data;
-        });
-
-        response.on('end', () => {
-            const parsed = JSON.parse(body);
-            res.render('home', {gifs: parsed.data});
-        })
-    });
+    const onResp = (err, response) => res.render('home', {gifs: response.data});
+    const {term} = req.query;
+    term ? giphyApi.search(term, onResp) : giphyApi.trending(onResp);
 });
 
 app.get('/hello-gif', function (req, res) {
     const gifUrl = 'http://media2.giphy.com/media/gYBVM1igrlzH2/giphy.gif';
-    res.render('hello-gif', {gifUrl: gifUrl})
+    res.render('hello-gif', {gifUrl})
 });
 
 app.get('/greetings/:name', (req, res) => {
